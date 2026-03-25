@@ -3346,15 +3346,20 @@ const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('popout') === 'true') {
     const popoutSkin = urlParams.get('skin');
     
-    // Inject strict CSS to hide anything that shouldn't be in a clean popout widget
+    // Inject strict CSS for the dark background
     const style = document.createElement('style');
     style.innerHTML = `
-        .global-return-btn { display: none !important; }
-        .global-popout-btn { display: none !important; }
-        .wmp9-floating-tab { display: none !important; }
-        body { background: transparent !important; }
+        body { background: #000000 !important; }
     `;
     document.head.appendChild(style);
+
+    // Foolproof removal of buttons from the DOM so they never show in the pop-out
+    const returnBtn = document.querySelector('.global-return-btn');
+    const popoutBtn = document.querySelector('.global-popout-btn');
+    const floatTab = document.querySelector('.wmp9-floating-tab');
+    if (returnBtn) returnBtn.remove();
+    if (popoutBtn) popoutBtn.remove();
+    if (floatTab) floatTab.remove();
 
     if (popoutSkin) {
         // Wait a tiny moment for the DOM to settle, then force the skin
