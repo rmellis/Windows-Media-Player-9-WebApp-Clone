@@ -33,13 +33,22 @@ The project utilizes a robust media routing engine capable of handling a vast ar
 * **Live Capture:** Hooks into the user's webcam and microphone via `navigator.mediaDevices.getUserMedia` for live device playback.
 
 ### Client-Side MKV Remuxing
-One of the most advanced features is the integration of **FFmpeg.wasm**. 
-* When a user imports an unsupported `.mkv` file, the app boots a local FFmpeg instance.
-* It remuxes the file to `.mp4` entirely in the browser's RAM (`-c copy`) without re-encoding, allowing instant playback of previously incompatible formats.
-* Includes a retro "Terminal" dialog window showing the live FFmpeg compilation logs.
+<table>
+  <tr>
+    <td width="60%">
+      One of the most advanced features is the integration of <strong>FFmpeg.wasm</strong>.
+      <ul>
+        <li>When a user imports an unsupported <code>.mkv</code> file, the app boots a local FFmpeg instance.</li>
+        <li>It remuxes the file to <code>.mp4</code> entirely in the browser's RAM (<code>-c copy</code>) without re-encoding, allowing instant playback of previously incompatible formats.</li>
+        <li>Includes a retro "Terminal" dialog window showing the live FFmpeg compilation logs.</li>
+      </ul>
+    </td>
+    <td width="40%" align="center">
+      <img width="300" alt="MKV Remuxing Terminal Overlay" src="https://github.com/user-attachments/assets/bf2485db-c1d1-4ac6-98c2-7f4bf4bd88e5" />
+    </td>
+  </tr>
+</table>
 
-![MKV Remuxing Terminal Overlay](Insert_FFmpeg_Terminal_Screenshot_Here)
-*Caption: The FFmpeg processing dialog converting an MKV file on the fly.*
 
 ---
 
@@ -55,8 +64,7 @@ The application intercepts the HTML5 `<video>` and `<audio>` elements using `Aud
 * **Oscilloscope:** Uses an `AnalyserNode` to extract real-time `timeDomainData`, drawing a live, beat-synced waveform on an HTML Canvas embedded in the transport bar.
 * **Ambiance Scaling:** When "Ambiance" background videos are active, the app extracts bass frequencies using `frequencyBinData` and dynamically scales the video's `playbackRate` to match the tempo of the music.
 
-![Graphic Equalizer and SRS WOW Tab](Insert_Equalizer_Screenshot_Here)
-*Caption: The fully functional 10-band Graphic Equalizer and Video Settings panel.*
+<img width="912" height="280" alt="The fully functional 10-band Graphic Equalizer and Video Settings panel" src="https://github.com/user-attachments/assets/a4c52c8f-bfb2-4310-8673-ca3bbeedb328" />
 
 ---
 
@@ -81,8 +89,7 @@ Users can switch between skins using the "Skin Chooser" tab. The CSS utilizes `c
 ### Pop-out Player Mode
 The app includes a "Pop-out Player" function that opens the current skin in a detached, minimal browser popup window (`window.open`), hiding standard UI elements for a true desktop-widget feel.
 
-![Skin Chooser Interface](Insert_Skin_Chooser_Screenshot_Here)
-*Caption: The classic Skin Chooser view displaying the BMO Console preview.*
+![The classic Skin Chooser view ](https://github.com/user-attachments/assets/07cf5967-df49-4d9f-a255-188a63f6a7e6)
 
 ---
 
@@ -121,5 +128,4 @@ The player includes extensive global keyboard event listeners for power users:
 | `Enter` | Apply Skin (In Skin Chooser) |
 | `Escape` | Exit custom skin / Return to Default |
 
-![Radio Tuner Interface](Insert_Radio_Tuner_Screenshot_Here)
-*Caption: The Radio Tuner tab featuring live streaming stations.*
+<img width="1219" height="717" alt="The Radio Tuner tab featuring live streaming stations." src="https://github.com/user-attachments/assets/d0a872ff-6449-4438-b262-a7e73c60a219" />
