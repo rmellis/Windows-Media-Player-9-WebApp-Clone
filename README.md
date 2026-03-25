@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/ythYTRi.png" alt="Windows Media Player 9 Web Logo" width="150"/>
+  <img src="https://github.com/user-attachments/assets/992cb51f-fbc6-48ff-886e-ea15e0d5d42c" alt="Windows Media Player 9 Web Logo" width="150"/>
   
   # Windows Media Player 9 Series: Web Edition
   **A fully functional, browser-based recreation of the classic media player.**
