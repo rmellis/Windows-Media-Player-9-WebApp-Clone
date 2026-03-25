@@ -1,6 +1,4 @@
-/* Homage by ywa.app. Copyright: 2025 */
-/* Redesigned strictly to Windows Media Player 9 Series dimensional visual identity */
-
+/* WebApp by ywa.app */
 /* --- VARIABLES --- */
 :root {
     --wmp9-frame-top: #7b9ccf; 
@@ -59,6 +57,26 @@ select {
     user-select: auto !important; 
     -webkit-user-select: auto !important; 
     -moz-user-select: auto !important; 
+}
+
+/* --- CUSTOM SCROLLBARS (WebKit/Chrome) --- */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--wmp9-border-soft);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--wmp9-frame-bot);
 }
 
 /* --- MAIN CONTAINER --- */
@@ -3163,4 +3181,5 @@ body:has(.wmp9-window.skin-rattleballs) .wmp9-floating-tab {
 body.skin-active .global-popout-btn,
 body:has(.wmp9-window[class*="skin-"]:not(.skin-default)) .global-popout-btn {
     display: flex !important;
+}
 }
