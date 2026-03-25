@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Media Player</title>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        @keyframes pulseRadio {
+            0% { opacity: 0.4; text-shadow: 0px 0px 4px #000, 0px 0px 6px #000; }
+            100% { opacity: 0.9; text-shadow: 0px 0px 6px #000, 0px 0px 10px #000, 0px 0px 15px #000; }
+        }
+        #radio-visualizer-fallback, #format-display-fallback {
+            animation: pulseRadio 1.2s infinite alternate ease-in-out !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="global-return-btn" onclick="window.applySelectedSkin('default')">
+        <i class="ph-bold ph-arrow-counter-clockwise"></i> Return to Default Player
+    </div>
+    
+    <div class="global-popout-btn" onclick="window.triggerPopout()">
+        <i class="ph-bold ph-corners-out"></i> Pop-out Player
+    </div>
+
+    <div class="wmp9-window">
+        
+        <div class="wmp9-floating-tab" id="now-playing-floater">
+            <div class="wmp9-tab-icon"><i class="ph-fill ph-music-notes"></i></div>
+            <span id="floating-tab-text">Now Playing</span>
+            <i class="ph-bold ph-caret-down" style="font-size: 0.7rem; color: #84a5d8; margin-left: 5px;"></i>
+            <div class="dropdown" id="now-playing-dropdown-menu"></div>
+        </div>
+
+        <div class="wmp9-top-bar">
+            
+            <div class="wmp9-logo">
+                <img src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/bGIU6HJ.png" alt="WMP9 Logo">
+            </div>
+            
+            <div class="menu-bar">
+                
+                <div class="menu-item">
+                    File
+                    <div class="dropdown">
+                        <div class="dropdown-item" onclick="document.getElementById('media-input').click()">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-folder-open wmp9-menu-icon"></i>Open...</div>
+                            <span class="dropdown-shortcut">Ctrl+O</span>
+                        </div>
+                        <div class="dropdown-item" onclick="window.promptNetworkStream()">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-globe wmp9-menu-icon"></i>Open URL...</div>
+                            <span class="dropdown-shortcut">Ctrl+U</span>
+                        </div>
+                        <div class="dropdown-item" onclick="window.openCaptureDevice()">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-camera wmp9-menu-icon"></i>Open Capture Device...</div>
+                        </div>
+                        <div class="dropdown-separator"></div>
+                        <div class="dropdown-item disabled">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-x-circle wmp9-menu-icon"></i>Close</div>
+                            <span class="dropdown-shortcut">Ctrl+W</span>
+                        </div>
+                        <div class="dropdown-separator"></div>
+                        <div class="dropdown-item" onclick="window.close()">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-power wmp9-menu-icon"></i>Exit</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="menu-item">
+                    View
+                    <div class="dropdown">
+                        <div class="dropdown-item" onclick="toggleFullscreen()">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-corners-out wmp9-menu-icon"></i>Full Mode</div>
+                            <span class="dropdown-shortcut">Alt+Enter</span>
+                        </div>
+                        <div class="dropdown-separator"></div>
+                        <div class="dropdown-item" onclick="togglePlaylist()">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-info wmp9-menu-icon"></i>Info Center View</div>
+                        </div>
+                        <div class="dropdown-separator"></div>
+                        
+                        <div class="dropdown-item nested-dropdown-parent" id="aspectRatioParent">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-monitor wmp9-menu-icon"></i>Video Size</div>
+                            <i class="ph ph-caret-right"></i>
+                            <div class="nested-dropdown" id="aspectRatioList">
+                                <div class="dropdown-item active-state" onclick="window.setAspectRatio('default')">Fit to Window</div>
+                                <div class="dropdown-item" onclick="window.setAspectRatio('16:9')">16:9</div>
+                                <div class="dropdown-item" onclick="window.setAspectRatio('16:10')">16:10</div>
+                                <div class="dropdown-item" onclick="window.setAspectRatio('4:3')">4:3</div>
+                                <div class="dropdown-item" onclick="window.setAspectRatio('1:1')">1:1</div>
+                                <div class="dropdown-item" onclick="window.setAspectRatio('2.35:1')">2.35:1</div>
+                            </div>
+                        </div>
+                        
+                        <div class="dropdown-item nested-dropdown-parent" id="visMenuParent">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-waveform wmp9-menu-icon"></i>Visualizations</div>
+                            <i class="ph ph-caret-right"></i>
+                            <div class="nested-dropdown" id="visMenuList">
+                                <div class="dropdown-item active-state" onclick="window.setVisualizationMode('ambiance')">Ambiance</div>
+                                <div class="dropdown-item" onclick="window.setVisualizationMode('vis')">Battery</div>
+                                <div class="dropdown-item" onclick="window.setVisualizationMode('art')">Album Art</div>
+                            </div>
+                        </div>
+
+                        <div class="dropdown-item nested-dropdown-parent" id="overlayMenuParent">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-magic-wand wmp9-menu-icon"></i>Visualization Overlays</div>
+                            <i class="ph ph-caret-right"></i>
+                            <div class="nested-dropdown" id="overlayMenuList">
+                                <div class="dropdown-item active-state" onclick="window.setArtFilter(0)">Normal</div>
+                                <div class="dropdown-item" onclick="window.setArtFilter(1)">Grayscale</div>
+                                <div class="dropdown-item" onclick="window.setArtFilter(2)">High Contrast</div>
+                                <div class="dropdown-item" onclick="window.setArtFilter(3)">Sepia</div>
+                                <div class="dropdown-item" onclick="window.setArtFilter(4)">Trippy</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                
+                <div class="menu-item">
+                    Play
+                    <div class="dropdown">
+                        <div class="dropdown-item" onclick="togglePlay()">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-play-pause wmp9-menu-icon"></i>Play/Pause</div>
+                            <span class="dropdown-shortcut">Ctrl+P</span>
+                        </div>
+                        <div class="dropdown-item" onclick="stopTrack()">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-stop wmp9-menu-icon"></i>Stop</div>
+                            <span class="dropdown-shortcut">Ctrl+S</span>
+                        </div>
+                        <div class="dropdown-item" onclick="prevTrack()">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-skip-back wmp9-menu-icon"></i>Previous</div>
+                            <span class="dropdown-shortcut">Ctrl+B</span>
+                        </div>
+                        <div class="dropdown-item" onclick="nextTrack()">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-skip-forward wmp9-menu-icon"></i>Next</div>
+                            <span class="dropdown-shortcut">Ctrl+F</span>
+                        </div>
+                        <div class="dropdown-separator"></div>
+                        <div class="dropdown-item" onclick="window.toggleShuffle()">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-shuffle wmp9-menu-icon"></i>Shuffle</div>
+                            <span class="dropdown-shortcut">Ctrl+H</span>
+                        </div>
+                        <div class="dropdown-item" onclick="window.toggleLoop()">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-repeat wmp9-menu-icon"></i>Repeat</div>
+                            <span class="dropdown-shortcut">Ctrl+T</span>
+                        </div>
+                        <div class="dropdown-separator"></div>
+                        
+                        <div class="dropdown-item nested-dropdown-parent">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-gauge wmp9-menu-icon"></i>Play Speed</div>
+                            <i class="ph ph-caret-right"></i>
+                            <div class="nested-dropdown">
+                                <div class="dropdown-item" onclick="window.setPlaybackSpeed(0.5)">Slow</div>
+                                <div class="dropdown-item" onclick="window.setPlaybackSpeed(1.0)">Normal</div>
+                                <div class="dropdown-item" onclick="window.setPlaybackSpeed(1.5)">Fast</div>
+                            </div>
+                        </div>
+                        
+                        <div class="dropdown-separator"></div>
+                        <div class="dropdown-item" onclick="toggleMute()">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-speaker-slash wmp9-menu-icon"></i>Mute</div>
+                            <span class="dropdown-shortcut">F8</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="menu-item">
+                    Tools
+                    <div class="dropdown">
+                        <div class="dropdown-item" onclick="openDialog('eq-dialog')">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-sliders-horizontal wmp9-menu-icon"></i>Graphic Equalizer</div>
+                        </div>
+                        <div class="dropdown-item" onclick="toggleSpatialAudio()" id="menu-spatial">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-speaker-hifi wmp9-menu-icon"></i>SRS WOW Effects</div>
+                        </div>
+                        <div class="dropdown-separator"></div>
+                        <div class="dropdown-item" onclick="window.takeSnapshot()">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-camera-plus wmp9-menu-icon"></i>Capture Video Frame</div>
+                        </div>
+                        <div class="dropdown-item nested-dropdown-parent disabled" id="subTrackParent">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-subtitles wmp9-menu-icon"></i>Captions and Subtitles</div>
+                            <i class="ph ph-caret-right"></i>
+                            <div class="nested-dropdown" id="subTrackList">
+                                <div class="dropdown-item active-state" onclick="setSubtitleTrack(-1)">Off</div>
+                            </div>
+                        </div>
+                        <div class="dropdown-item" onclick="document.getElementById('sub-input').click()">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-file-text wmp9-menu-icon"></i>Load Captions...</div>
+                        </div>
+                        <div class="dropdown-separator"></div>
+                        <div class="dropdown-item" onclick="toggleAdvancedControls()">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-wrench wmp9-menu-icon"></i>Advanced Tools</div>
+                        </div>
+                        <div class="dropdown-item" onclick="toggleVoice()">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-microphone wmp9-menu-icon"></i>Voice Control</div>
+                        </div>
+                        <div class="dropdown-item" onclick="openDialog('rec-dialog')">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-cassette-tape wmp9-menu-icon"></i>Recorded Files</div>
+                        </div>
+                        <div class="dropdown-separator"></div>
+                        <div class="dropdown-item" onclick="openDialog('theme-dialog')">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-gear wmp9-menu-icon"></i>Options...</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="menu-item">
+                    Help
+                    <div class="dropdown">
+                        <div class="dropdown-item" onclick="openDialog('help-dialog')">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-question wmp9-menu-icon"></i>Help Topics</div>
+                            <span class="dropdown-shortcut">F1</span>
+                        </div>
+                        <div class="dropdown-separator"></div>
+                        <div class="dropdown-item" onclick="openDialog('about-dialog')">
+                            <div class="dropdown-item-text"><i class="ph-fill ph-info wmp9-menu-icon"></i>About Windows Media Player</div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+
+            <div class="media-guide-controls" id="mg-controls">
+                <div class="mg-btn" onclick="window.mgBack()"><div class="mg-icon"><i class="ph-bold ph-arrow-left"></i></div> Back</div>
+                <div class="mg-btn" onclick="window.mgForward()"><div class="mg-icon"><i class="ph-bold ph-arrow-right"></i></div> Forward</div>
+                <div class="mg-btn" onclick="window.mgStop()"><div class="mg-icon"><i class="ph-bold ph-x"></i></div> Stop</div>
+                <div class="mg-btn" onclick="window.mgRefresh()"><div class="mg-icon"><i class="ph-bold ph-arrows-clockwise"></i></div> Refresh</div>
+                <div class="mg-btn" onclick="window.mgHome()"><div class="mg-icon"><i class="ph-bold ph-house"></i></div> Home</div>
+                <div style="width: 1px; height: 16px; background: #8ba1c6; margin: 0 5px;"></div>
+                <div class="mg-btn" onclick="openDialog('login-modal')"><div class="mg-icon"><i class="ph-bold ph-sign-in"></i></div> Log In</div>
+            </div>
+
+            <div class="copy-cd-controls" id="cd-controls">
+                <div class="mg-btn" onclick="window.cdReload()"><div class="mg-icon"><i class="ph-bold ph-arrows-clockwise"></i></div> Reload disk</div>
+                <div class="mg-btn" onclick="window.cdEject()"><div class="mg-icon"><i class="ph-bold ph-eject"></i></div> Eject disk</div>
+            </div>
+
+            <div class="media-library-controls" id="ml-controls">
+                <div class="mg-btn" onclick="document.getElementById('media-input').click()"><div class="mg-icon"><i class="ph-bold ph-folder-open"></i></div> Import Media</div>
+                <div class="mg-btn" onclick="window.mlNewPlaylist()"><div class="mg-icon"><i class="ph-bold ph-list-plus"></i></div> New Playlist</div>
+                <div class="mg-btn" onclick="window.mlAddToPlaylist()"><div class="mg-icon"><i class="ph-bold ph-plus"></i></div> Add to playlist</div>
+                <div class="mg-btn" onclick="window.mlSearch()"><div class="mg-icon"><i class="ph-bold ph-magnifying-glass"></i></div> Search</div>
+                <div style="width: 1px; height: 16px; background: #8ba1c6; margin: 0 5px;"></div>
+                <div class="mg-btn" onclick="window.mlMediaDetails()"><div class="mg-icon"><i class="ph-bold ph-info"></i></div> Media Details</div>
+            </div>
+            
+            <div class="radio-tuner-controls" id="rt-controls">
+                <div class="mg-btn" onclick="window.rtRefreshStream()"><div class="mg-icon"><i class="ph-bold ph-arrows-clockwise"></i></div> Refresh Stream</div>
+                <div class="mg-btn" onclick="window.promptNetworkStream()"><div class="mg-icon"><i class="ph-bold ph-globe"></i></div> Custom Stream URL</div>
+                <div class="mg-btn" onclick="window.stopTrack()"><div class="mg-icon"><i class="ph-bold ph-x"></i></div> Force Stream to Stop</div>
+                <div class="mg-btn" onclick="window.rtRefresh()"><div class="mg-icon"><i class="ph-bold ph-arrow-counter-clockwise"></i></div> Refresh</div>
+            </div>
+            
+            <div class="copy-to-cd-controls" id="burn-controls">
+                <div class="mg-btn" onclick="window.startMockBurn()"><div class="mg-icon"><i class="ph-bold ph-record" style="color: red;"></i></div> Copy Music</div>
+                <div class="mg-btn" onclick="window.stopMockBurn()"><div class="mg-icon"><i class="ph-bold ph-stop"></i></div> Cancel</div>
+            </div>
+
+            <div class="premium-services-controls" id="ps-controls">
+                <div class="mg-btn" onclick="openDialog('login-modal')"><div class="mg-icon"><i class="ph-bold ph-user-plus"></i></div> Sign Up</div>
+                <div class="mg-btn" onclick="openDialog('login-modal')"><div class="mg-icon"><i class="ph-bold ph-sign-in"></i></div> Log In</div>
+                <div style="width: 1px; height: 16px; background: #8ba1c6; margin: 0 5px;"></div>
+                <div class="mg-btn" onclick="logSystem('Managing Account...')"><div class="mg-icon"><i class="ph-bold ph-gear"></i></div> Manage Account</div>
+            </div>
+
+            <div class="skin-chooser-controls" id="sc-controls">
+                <div class="mg-btn" onclick="applyPreviewedSkin()"><div class="mg-icon"><i class="ph-bold ph-check"></i></div> Apply Skin</div>
+                <div class="mg-btn" onclick="window.triggerPopout(currentPreviewedSkin)"><div class="mg-icon"><i class="ph-bold ph-corners-out"></i></div> Pop-out Skin</div>
+                <div class="mg-btn" onclick="openDialog('more-skins-dialog')"><div class="mg-icon"><i class="ph-bold ph-plus"></i></div> More Skins</div>
+                <div style="width: 1px; height: 16px; background: #8ba1c6; margin: 0 5px;"></div>
+                <div class="mg-btn" onclick="window.applySelectedSkin('default')"><div class="mg-icon"><i class="ph-bold ph-arrow-counter-clockwise"></i></div> Reset to Default</div>
+            </div>
+            
+            <div class="wmp9-top-right">
+                <span id="wmp9-top-right-text"><span id="top-right-text">Now Playing</span></span>
+            </div>
+            
+        </div>
+
+        <div class="wmp9-body-grid">
+
+            <img id="wreath-overlay" src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/bWrzZuv.png" alt="Wreath Overlay" style="display: none;">
+            
+            <div class="wmp9-taskbar">
+                
+                <div class="wmp9-taskbar-sizer">
+                    <div class="wmp9-sizer-circle">
+                        <i class="ph-bold ph-caret-up"></i>
+                        <i class="ph-bold ph-caret-down" style="margin-top:-6px;"></i>
+                    </div>
+                    <span class="wmp9-watermark">ywa.app</span>
+                </div>
+
+                <div class="wmp9-nav-btn active" id="nav-now-playing" onclick="window.showNowPlaying()" title="Watch currently playing media">
+                    <span>Now<br>Playing</span>
+                    <div class="wmp9-nav-caret"></div>
+                </div>
+                <div class="wmp9-nav-btn" id="nav-media-guide" onclick="window.showMediaGuide()" title="Find media on the Internet">
+                    <span>Media<br>Guide</span>
+                </div>
+                <div class="wmp9-nav-btn" id="nav-copy-cd" onclick="window.showCopyFromCD()" title="Copy and Play Audio tracks">
+                    <span>Copy from<br>CD</span>
+                </div>
+                <div class="wmp9-nav-btn" id="nav-media-library" onclick="window.showMediaLibrary()" title="Create playlists and manage media">
+                    <span>Media<br>Library</span>
+                </div>
+                <div class="wmp9-nav-btn" id="nav-radio-tuner" onclick="window.showRadioTuner()" title="Tune into streaming radio stations">
+                    <span>Radio<br>Tuner</span>
+                </div>
+                <div class="wmp9-nav-btn" id="nav-copy-to-cd" onclick="window.showCopyToCD()" title="copy files to portable devices and recordable CDs">
+                    <span>Copy to CD<br>or Device</span>
+                </div>
+                <div class="wmp9-nav-btn" id="nav-premium-services" onclick="window.showPremiumServices()" title="Find subscription services on the Internet">
+                    <span>Premium<br>Services</span>
+                </div>
+                <div class="wmp9-nav-btn" id="nav-skin-chooser" onclick="window.showSkinChooser()" title="Select and apply a skin">
+                    <span>Skin<br>Chooser</span>
+                </div>
+                
+                <div class="wmp9-taskbar-bottom-arrow">
+                    <i class="ph-bold ph-caret-double-down"></i>
+                </div>
+                
+            </div>
+            
+            <div class="wmp9-xp-logo-cell">
+                <img src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/LMXkhOV.png" class="wmp9-corner-overlay" alt="Windows XP Custom Corner Overlay" draggable="false">
+            </div>
+            
+            <div class="wmp9-center-pane" id="playlist-drop-zone">
+                
+                <div class="advanced-controls" id="adv-controls">
+                    <div class="rec-indicator" id="rec-dot"></div>
+                    <button class="vlc-btn" title="Record" id="btn-start-rec" onclick="window.startRecording()">
+                        <i class="ph-bold ph-record" style="color:red"></i>
+                    </button>
+                    <button class="vlc-btn" title="Stop Recording" id="btn-stop-rec" onclick="window.stopRecording()" disabled>
+                        <i class="ph-bold ph-stop-circle"></i>
+                    </button>
+                    <div style="border-left: 1px solid #ccc; height: 15px; margin: 0 5px;"></div>
+                    <button class="vlc-btn" title="Voice Control" onclick="window.toggleVoice()">
+                        <i class="ph-bold ph-microphone"></i>
+                    </button>
+                    <span id="voice-status" style="font-size: 0.8rem; color: #fff; display: none; margin-left: 5px;">Listening...</span>
+                </div>
+
+                <div class="osd-text" id="osd-overlay">Volume: 100%</div>
+                
+                <div class="idle-logo" id="idle-logo">
+                    <div class="vis-placeholder"></div>
+                    <img class="bmo-face" src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/XyKeIJB.png" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 5;">
+                </div>
+
+                <div class="wmp9-video-header">
+                    <div class="wmp9-video-artist" id="wmp9-video-artist"><span id="video-artist">Ready</span></div>
+                    <div class="wmp9-video-title" id="wmp9-video-title"><span id="video-title">Windows Media Player</span></div>
+                </div>
+
+                <div class="wmp9-video-wrapper">
+                    
+                    <div id="copy-cd-view" class="copy-cd-view">
+                        <div class="copy-cd-left">
+                            <div class="copy-cd-drive">
+                                <i class="ph-fill ph-disc wmp9-drive-icon"></i>
+                                <span>No Disk (D:\)</span>
+                            </div>
+                        </div>
+                        <div class="copy-cd-right">
+                            <div class="copy-cd-header">
+                                <div class="cd-col-check"><input type="checkbox" disabled title="Select All"></div>
+                                <div class="cd-col-title">Title</div>
+                                <div class="cd-col-length">Length</div>
+                                <div class="cd-col-rating">Rating</div>
+                                <div class="cd-col-artist">Contributing Artist</div>
+                                <div class="cd-col-album">Album</div>
+                            </div>
+                            <div class="copy-cd-empty-text">
+                                To begin, insert an audio CD into the CD drive.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="media-library-view" class="media-library-view">
+                        <div class="ml-left">
+                            <div class="ml-header" style="padding-left: 10px; color: #1e395b; font-weight: bold;">Drag and Drop</div>
+                            <div class="ml-drop-zone">
+                                <i class="ph-bold ph-download-simple" style="font-size: 2rem; color: #a4c1f4; margin-bottom: 10px;"></i>
+                                Drop media here
+                            </div>
+                        </div>
+                        <div class="ml-right">
+                            <div class="ml-header">
+                                <div class="ml-col-num">#</div>
+                                <div class="ml-col-name">Name</div>
+                                <div class="ml-col-artist">Artist</div>
+                                <div class="ml-col-album">Album</div>
+                            </div>
+                            <div class="ml-track-list-container" id="library-track-list">
+                                <div class="ml-empty-text" id="ml-empty-text">Music and Video will appear here when detected.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="radio-tuner-view" class="radio-tuner-view">
+                        <table width="100%" cellspacing="0" cellpadding="0" style="height: auto;">
+                            <tr>
+                                <td style="width: 1%; background: #31363a; vertical-align: top;">
+                                    <img src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/jmgvmo7.png" alt="WindowsMedia.com" style="display: block; height: 25px; box-sizing: content-box; margin-left: 6px; padding-top: 6px; padding-left: 6px;" draggable="false">
+                                </td>
+                                <td style="background: #31363a;"></td>
+                                <td style="width: 1%; background: #31363a; vertical-align: top;">
+                                    <img src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/4t60mwo.png" alt="Radio Tuner Extra Logo" style="display: block; height: 25px; box-sizing: content-box; margin-right: 6px; padding-top: 10px; padding-right: 4px;" draggable="false">
+                                </td>
+                            </tr>
+                        </table>
+                        
+                        <div class="rt-content-area">
+                            <div class="rt-group">
+                                <div class="rt-group-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                                    <i class="ph-bold ph-caret-down rt-caret"></i> United Kingdom
+                                </div>
+                                <div class="rt-group-content">
+                                    <table class="rt-station-table" cellspacing="0" cellpadding="0">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 50%;">Station Name</th>
+                                                <th style="width: 20%;">Speed</th>
+                                                <th style="width: 30%;">Location</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr onclick="window.handleNetworkStream('https://media-ssl.musicradio.com/ClassicFM', true, 'Classic FM')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Classic FM</td>
+                                                <td>128K</td>
+                                                <td>UK</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://media-ssl.musicradio.com/CapitalUK', true, 'Capital FM')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Capital FM</td>
+                                                <td>128K</td>
+                                                <td>UK</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://media-ssl.musicradio.com/HeartUK', true, 'Heart UK')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Heart UK</td>
+                                                <td>128K</td>
+                                                <td>UK</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://media-ssl.musicradio.com/SmoothUK', true, 'Smooth Radio')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Smooth Radio</td>
+                                                <td>128K</td>
+                                                <td>UK</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://media-ssl.musicradio.com/RadioXUK', true, 'Radio X')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Radio X</td>
+                                                <td>128K</td>
+                                                <td>UK</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://media-ssl.musicradio.com/Gold', true, 'Gold Radio')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Gold Radio</td>
+                                                <td>128K</td>
+                                                <td>UK</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://media-ssl.musicradio.com/LBCUK', true, 'LBC')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> LBC</td>
+                                                <td>128K</td>
+                                                <td>UK</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://media-ssl.musicradio.com/CapitalDance', true, 'Capital Dance')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Capital Dance</td>
+                                                <td>128K</td>
+                                                <td>UK</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://media-ssl.musicradio.com/Heart80s', true, 'Heart 80s')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Heart 80s</td>
+                                                <td>128K</td>
+                                                <td>UK</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://media-ssl.musicradio.com/SmoothChill', true, 'SmoothChill')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Smooth Chill</td>
+                                                <td>128K</td>
+                                                <td>UK</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://media-ssl.musicradio.com/CapitalChill', true, 'Capital Chill')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Capital Chill</td>
+                                                <td>128K</td>
+                                                <td>UK</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://media-ssl.musicradio.com/HeartDance', true, 'Heart Dance')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Heart Dance</td>
+                                                <td>128K</td>
+                                                <td>UK</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://media-ssl.musicradio.com/SmoothCountry', true, 'Smooth Country')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Smooth Country</td>
+                                                <td>128K</td>
+                                                <td>UK</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="rt-group">
+                                <div class="rt-group-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                                    <i class="ph-bold ph-caret-down rt-caret"></i> United States
+                                </div>
+                                <div class="rt-group-content">
+                                    <table class="rt-station-table" cellspacing="0" cellpadding="0">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 50%;">Station Name</th>
+                                                <th style="width: 20%;">Speed</th>
+                                                <th style="width: 30%;">Location</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr onclick="window.handleNetworkStream('https://ice1.somafm.com/groovesalad-128-mp3', true, 'SomaFM Groove Salad')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> SomaFM Groove Salad</td>
+                                                <td>128K</td>
+                                                <td>San Francisco, CA</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://ice1.somafm.com/dronezone-128-mp3', true, 'SomaFM Drone Zone')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> SomaFM Drone Zone</td>
+                                                <td>128K</td>
+                                                <td>San Francisco, CA</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://ice1.somafm.com/secretagent-128-mp3', true, 'SomaFM Secret Agent')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> SomaFM Secret Agent</td>
+                                                <td>128K</td>
+                                                <td>San Francisco, CA</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://ice1.somafm.com/spacestation-128-mp3', true, 'SomaFM Space Station')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> SomaFM Space Station</td>
+                                                <td>128K</td>
+                                                <td>San Francisco, CA</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://ice1.somafm.com/defcon-128-mp3', true, 'SomaFM DEF CON Radio')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> SomaFM DEF CON Radio</td>
+                                                <td>128K</td>
+                                                <td>San Francisco, CA</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://kexp-mp3-128.streamguys1.com/kexp128.mp3', true, 'KEXP 90.3 Seattle')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> KEXP 90.3 Seattle</td>
+                                                <td>128K</td>
+                                                <td>Seattle, WA</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://stream.wqxr.org/wqxr', true, 'WQXR Classical')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> WQXR Classical</td>
+                                                <td>128K</td>
+                                                <td>New York, NY</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://listen.181fm.com/181-awesome80s_128k.mp3', true, '181.fm Awesome 80s')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> 181.fm Awesome 80s</td>
+                                                <td>128K</td>
+                                                <td>Waynesboro, VA</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://listen.181fm.com/181-eagle_128k.mp3', true, '181.fm The Eagle')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> 181.fm The Eagle</td>
+                                                <td>128K</td>
+                                                <td>Waynesboro, VA</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://listen.181fm.com/181-90salt_128k.mp3', true, '181.fm 90s Alternative')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> 181.fm 90s Alternative</td>
+                                                <td>128K</td>
+                                                <td>Waynesboro, VA</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://listen.181fm.com/181-themix_128k.mp3', true, '181.fm The Mix')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> 181.fm The Mix</td>
+                                                <td>128K</td>
+                                                <td>Waynesboro, VA</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://listen.181fm.com/181-hairband_128k.mp3', true, '181.fm 80s Hairband')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> 181.fm 80s Hairband</td>
+                                                <td>128K</td>
+                                                <td>Waynesboro, VA</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://listen.181fm.com/181-buzz_128k.mp3', true, '181.fm The Buzz')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> 181.fm The Buzz</td>
+                                                <td>128K</td>
+                                                <td>Waynesboro, VA</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="rt-group">
+                                <div class="rt-group-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                                    <i class="ph-bold ph-caret-down rt-caret"></i> Canada
+                                </div>
+                                <div class="rt-group-content">
+                                    <table class="rt-station-table" cellspacing="0" cellpadding="0">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 50%;">Station Name</th>
+                                                <th style="width: 20%;">Speed</th>
+                                                <th style="width: 30%;">Location</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr onclick="window.handleNetworkStream('https://corus.leanstream.co/CILQFM', true, 'Q107 Classic Rock')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Q107 Classic Rock</td>
+                                                <td>128K</td>
+                                                <td>Toronto, ON</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://corus.leanstream.co/CFNYFM', true, '102.1 The Edge')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> 102.1 The Edge</td>
+                                                <td>128K</td>
+                                                <td>Toronto, ON</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://corus.leanstream.co/CFOXFM', true, 'CFOX Vancouver')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> CFOX Vancouver</td>
+                                                <td>128K</td>
+                                                <td>Vancouver, BC</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://ais-sa1.streamon.fm/7263_64k.mp3', true, '95.7 Cruz FM')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> 95.7 Cruz FM</td>
+                                                <td>64K</td>
+                                                <td>Edmonton, AB</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://ais-sa1.streamon.fm/7260_64k.mp3', true, 'Play 107.1')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Play 107.1</td>
+                                                <td>64K</td>
+                                                <td>Edmonton, AB</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://ais-sa1.streamon.fm/7255_64k.mp3', true, '104.9 The Wolf')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> 104.9 The Wolf</td>
+                                                <td>64K</td>
+                                                <td>Regina, SK</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://live.leanstream.co/CFMIFM-MP3-2', true, 'Rock 101')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Rock 101</td>
+                                                <td>128K</td>
+                                                <td>Vancouver, BC</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://corus.leanstream.co/CJXYFM', true, 'Y108 Hamilton')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Y108 Hamilton</td>
+                                                <td>128K</td>
+                                                <td>Hamilton, ON</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://corus.leanstream.co/CKBTFM', true, '91.5 The Beat')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> 91.5 The Beat</td>
+                                                <td>128K</td>
+                                                <td>Kitchener, ON</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://corus.leanstream.co/CKNGFM', true, 'Chuck @ 92.5')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Chuck @ 92.5</td>
+                                                <td>128K</td>
+                                                <td>Edmonton, AB</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://corus.leanstream.co/CFGQFM', true, 'Q107 Calgary')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Q107 Calgary</td>
+                                                <td>128K</td>
+                                                <td>Calgary, AB</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://corus.leanstream.co/CHEDAM', true, '630 CHED')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> 630 CHED</td>
+                                                <td>128K</td>
+                                                <td>Edmonton, AB</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div class="rt-group">
+                                <div class="rt-group-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                                    <i class="ph-bold ph-caret-down rt-caret"></i> Australia
+                                </div>
+                                <div class="rt-group-content">
+                                    <table class="rt-station-table" cellspacing="0" cellpadding="0">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 50%;">Station Name</th>
+                                                <th style="width: 20%;">Speed</th>
+                                                <th style="width: 30%;">Location</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr onclick="window.handleNetworkStream('https://live-radio01.mediahubaustralia.com/2TJW/mp3', true, 'Triple J')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Triple J</td>
+                                                <td>128K</td>
+                                                <td>National</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://ais-arn.streamguys1.com/au_002_icy', true, 'KIIS 106.5 Sydney')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> KIIS 106.5 Sydney</td>
+                                                <td>128K</td>
+                                                <td>Sydney, NSW</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://ais-arn.streamguys1.com/au_003_icy', true, 'WSFM 101.7 Sydney')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> WSFM 101.7 Sydney</td>
+                                                <td>128K</td>
+                                                <td>Sydney, NSW</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://ais-arn.streamguys1.com/au_004_icy', true, 'Gold 104.3 Melbourne')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Gold 104.3 Melbourne</td>
+                                                <td>128K</td>
+                                                <td>Melbourne, VIC</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://ais-arn.streamguys1.com/au_001_icy', true, 'KIIS 101.1 Melbourne')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> KIIS 101.1 Melbourne</td>
+                                                <td>128K</td>
+                                                <td>Melbourne, VIC</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://ais-arn.streamguys1.com/au_005_icy', true, 'Mix 102.3 Adelaide')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Mix 102.3 Adelaide</td>
+                                                <td>128K</td>
+                                                <td>Adelaide, SA</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://playerservices.streamtheworld.com/api/livestream-redirect/2NURFM.mp3', true, '2NURFM 103.7')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> 2NURFM 103.7</td>
+                                                <td>128K</td>
+                                                <td>Newcastle, NSW</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://live.fresh927.com.au/freshmp3', true, 'Fresh 92.7')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> Fresh 92.7</td>
+                                                <td>128K</td>
+                                                <td>Adelaide, SA</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://playerservices.streamtheworld.com/api/livestream-redirect/3AW.mp3', true, '3AW 693 News Talk')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> 3AW 693 News Talk</td>
+                                                <td>128K</td>
+                                                <td>Melbourne, VIC</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://playerservices.streamtheworld.com/api/livestream-redirect/2GB.mp3', true, '2GB 873 Sydney')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> 2GB 873 Sydney</td>
+                                                <td>128K</td>
+                                                <td>Sydney, NSW</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://playerservices.streamtheworld.com/api/livestream-redirect/4BC.mp3', true, '4BC 882 Brisbane')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> 4BC 882 Brisbane</td>
+                                                <td>128K</td>
+                                                <td>Brisbane, QLD</td>
+                                            </tr>
+                                            <tr onclick="window.handleNetworkStream('https://playerservices.streamtheworld.com/api/livestream-redirect/6PR.mp3', true, '6PR 882 Perth')">
+                                                <td><i class="ph-fill ph-play-circle rt-play-icon"></i> 6PR 882 Perth</td>
+                                                <td>128K</td>
+                                                <td>Perth, WA</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                    
+                    <div id="copy-to-cd-view" class="copy-to-cd-view">
+                        <div class="burn-pane burn-left">
+                            <div class="burn-header-select">
+                                <select class="wmp9-burn-dropdown"><option>Items to Copy</option><option>Now Playing</option><option>All Music</option></select>
+                            </div>
+                            <div class="burn-list-header">
+                                <div class="burn-col-check"><input type="checkbox" checked disabled></div>
+                                <div class="burn-col-title">Title</div>
+                                <div class="burn-col-status">Status</div>
+                                <div class="burn-col-length">Length</div>
+                            </div>
+                            <div class="burn-list-body">
+                                <div class="burn-list-item">
+                                    <div class="burn-col-check"><input type="checkbox" checked disabled></div>
+                                    <div class="burn-col-title">Track 01</div>
+                                    <div class="burn-col-status">Ready to copy</div>
+                                    <div class="burn-col-length">3:14</div>
+                                </div>
+                                <div class="burn-list-item">
+                                    <div class="burn-col-check"><input type="checkbox" checked disabled></div>
+                                    <div class="burn-col-title">Track 02</div>
+                                    <div class="burn-col-status">Ready to copy</div>
+                                    <div class="burn-col-length">4:02</div>
+                                </div>
+                                <div class="burn-list-item">
+                                    <div class="burn-col-check"><input type="checkbox" checked disabled></div>
+                                    <div class="burn-col-title">Track 03</div>
+                                    <div class="burn-col-status">Ready to copy</div>
+                                    <div class="burn-col-length">2:58</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="burn-pane burn-right">
+                            <div class="burn-header-select">
+                                <select class="wmp9-burn-dropdown"><option>Items on Device</option><option>CD Drive (D:)</option><option>Portable Device (E:)</option></select>
+                            </div>
+                            <div class="burn-list-header">
+                                <div class="burn-col-title-right">Title</div>
+                                <div class="burn-col-size">Size</div>
+                            </div>
+                            <div class="burn-list-body burn-empty-body">
+                                <div class="burn-empty-text">There are no items on the CD or Device.</div>
+                            </div>
+                            <div class="burn-capacity-area">
+                                <div class="burn-capacity-title">Audio CD (D:) - 80 Minutes Free</div>
+                                <div class="burn-capacity-bar-container">
+                                    <div class="burn-capacity-bar-fill" style="width: 15%;"></div>
+                                </div>
+                                <div class="burn-capacity-labels">
+                                    <span>0</span>
+                                    <span>20</span>
+                                    <span>40</span>
+                                    <span>60</span>
+                                    <span>80 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="premium-services-view" class="premium-services-view">
+                        <div class="ps-sidebar">
+                            <div class="ps-header">Available Services</div>
+                            
+                            <div class="ps-service-item active" onclick="window.switchPremiumService('home', this)" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>Home</span>
+                                <img src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/ythYTRi.png" style="height: 16px; opacity: 0.8;" draggable="false">
+                            </div>
+                            
+                            <div class="ps-service-item" onclick="window.switchPremiumService('napster', this)" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>Napster</span>
+                                <img src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/hrTptP9.png" style="height: 16px; opacity: 0.8;" draggable="false">
+                            </div>
+                            
+                            <div class="ps-service-item" onclick="window.switchPremiumService('pressplay', this)" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>pressplay</span>
+                                <img src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/dA4qr7A.png" style="height: 16px; opacity: 0.8;" draggable="false">
+                            </div>
+
+                            <div class="ps-service-item" onclick="window.switchPremiumService('cinemanow', this)" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>CinemaNow</span>
+                                <img src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/BqU8Mx9.png" style="height: 16px; opacity: 0.8;" draggable="false">
+                            </div>
+
+                            <div class="ps-service-item" onclick="window.switchPremiumService('fullaudio', this)" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>FullAudio</span>
+                                <img src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/NXV7Et4.png" style="height: 16px; opacity: 0.8;" draggable="false">
+                            </div>
+
+                            <div class="ps-service-item" onclick="window.switchPremiumService('intertainer', this)" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>Intertainer</span>
+                                <img src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/nfJrTBv.png" style="height: 16px; opacity: 0.8;" draggable="false">
+                            </div>
+
+                            <div class="ps-service-item" onclick="window.switchPremiumService('msn', this)" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>MSN Music Club</span>
+                                <img src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/iExt5ps.png" style="height: 16px; opacity: 0.8;" draggable="false">
+                            </div>
+                            
+                            <div class="ps-coming-soon">
+                                <strong>Coming Soon</strong><br>
+                                More premium movies, music, news, sport and entertainment.
+                            </div>
+                        </div>
+                        <div class="ps-content">
+                            <div class="ps-banner" style="display: flex; justify-content: space-between; align-items: center;">
+                                <h2 id="ps-banner-title">Welcome!</h2>
+                                <img src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/ythYTRi.png" alt="Premium Services" style="height: 35px; filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.2));" draggable="false">
+                            </div>
+                            
+                            <div class="ps-service-pane active" id="ps-pane-home">
+                                <p style="padding: 20px; font-size: 0.85rem; color: #333333; line-height: 1.5;">This is the premium services area of the Windows Media Player, the place to get the best digital media, delivered directly to you. These subscription services link directly to your media player, so signing up once means instant sign-in whenever you launch it. You'll also get total integration of your subscription streams and downloads with your personal media library. So turn it up!</p>
+                                <div class="ps-grid">
+                                </div>
+                            </div>
+                            
+                            <div class="ps-service-pane" id="ps-pane-napster">
+                                <div class="ps-grid">
+                                    <div class="ps-card">
+                                        <div class="ps-card-info">
+                                            <h3>Napster</h3>
+                                            <p>The new legal Napster gives you unlimited access to the world's largest music catalog. Stream full-length songs, download tracks to your PC, and discover new artists.</p>
+                                            <button class="wmp9-dialog-btn" onclick="logSystem('Opening Napster...')">Explore</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="ps-service-pane" id="ps-pane-pressplay">
+                                <div class="ps-grid">
+                                    <div class="ps-card">
+                                        <div class="ps-card-info">
+                                            <h3>pressplay</h3>
+                                            <p>The ultimate music subscription service. Enjoy unlimited streaming, download your favorite tracks, and legally burn custom mix CDs from a massive library of major label artists.</p>
+                                            <button class="wmp9-dialog-btn" onclick="logSystem('Opening pressplay...')">Explore</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="ps-service-pane" id="ps-pane-cinemanow">
+                                <div class="ps-grid">
+                                    <div class="ps-card">
+                                        <div class="ps-card-info">
+                                            <h3>CinemaNow</h3>
+                                            <p>Instantly watch premium Hollywood movies and independent films on demand. Rent the latest blockbusters and stream them directly to your Windows Media Player via broadband.</p>
+                                            <button class="wmp9-dialog-btn" onclick="logSystem('Opening CinemaNow...')">Explore</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="ps-service-pane" id="ps-pane-msn">
+                                <div class="ps-grid">
+                                    <div class="ps-card">
+                                        <div class="ps-card-info">
+                                            <h3>MSN Music Club</h3>
+                                            <p>Integrated perfectly with the Windows Media Player Smart Jukebox. Access exclusive music content, listen to premium radio channels, and sync effortlessly to your portable devices.</p>
+                                            <button class="wmp9-dialog-btn" onclick="logSystem('Opening MSN Music...')">Explore</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="ps-service-pane" id="ps-pane-fullaudio">
+                                <div class="ps-grid">
+                                    <div class="ps-card">
+                                        <div class="ps-card-info">
+                                            <h3>FullAudio</h3>
+                                            <p>Premium, commercial-free internet radio and curated channels. Discover new music continuously and easily transfer your favorite playlists to compatible portable audio players.</p>
+                                            <button class="wmp9-dialog-btn" onclick="logSystem('Opening FullAudio...')">Explore</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="ps-service-pane" id="ps-pane-intertainer">
+                                <div class="ps-grid">
+                                    <div class="ps-card">
+                                        <div class="ps-card-info">
+                                            <h3>Intertainer</h3>
+                                            <p>Your premier broadband entertainment network. Enjoy high-quality, full-screen movies, exclusive music videos, and hit television programming instantly on demand.</p>
+                                            <button class="wmp9-dialog-btn" onclick="logSystem('Opening Intertainer...')">Explore</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div id="skin-chooser-view" class="skin-chooser-view classic-skin-chooser">
+                        <div class="sc-classic-body">
+                            <div class="sc-classic-list" id="sc-skin-list">
+                                <div class="sc-list-item active" onclick="previewSkin('default', 'Default (Royal)', 'Microsoft Corporation', 'Ad-Free WebApps', event)" ondblclick="window.applySelectedSkin('default')">Default (Royal)</div>
+                                <div class="sc-list-item" onclick="previewSkin('skin-mini', 'Miniplayer', 'ywa.app', 'Ad-Free WebApps', event)" ondblclick="window.applySelectedSkin('skin-mini')">Miniplayer</div>
+                                <div class="sc-list-item" onclick="previewSkin('skin-compact', 'Compact', 'ywa.app', 'Ad-Free WebApps', event)" ondblclick="window.applySelectedSkin('skin-compact')">Compact</div>
+                                <div class="sc-list-item" onclick="previewSkin('skin-bauble', 'Christmas Bauble', 'ywa.app', 'Ad-Free WebApps', event)" ondblclick="window.applySelectedSkin('skin-bauble')">Christmas Bauble</div>
+                                <div class="sc-list-item" onclick="previewSkin('skin-wreath', 'Xmas Wreath', 'ywa.app', 'Ad-Free WebApps', event)" ondblclick="window.applySelectedSkin('skin-wreath')">Xmas Wreath</div>
+                                <div class="sc-list-item" onclick="previewSkin('skin-diamond', 'Diamond Prism', 'ywa.app', 'Ad-Free WebApps', event)" ondblclick="window.applySelectedSkin('skin-diamond')">Diamond Prism</div>
+                                <div class="sc-list-item" onclick="previewSkin('skin-pillar', 'Vertical Pillar', 'ywa.app', 'Ad-Free WebApps', event)" ondblclick="window.applySelectedSkin('skin-pillar')">Vertical Pillar</div>
+                                <div class="sc-list-item" onclick="previewSkin('skin-bmo', 'BMO Console', 'ywa.app', 'Ad-Free WebApps', event)" ondblclick="window.applySelectedSkin('skin-bmo')">BMO Console</div>
+                                <div class="sc-list-item" onclick="previewSkin('skin-capsule', 'Floating Capsule', 'ywa.app', 'Ad-Free WebApps', event)" ondblclick="window.applySelectedSkin('skin-capsule')">Floating Capsule</div>
+                                <div class="sc-list-item" onclick="previewSkin('skin-hexagon', 'Hex Grid', 'ywa.app', 'Ad-Free WebApps', event)" ondblclick="window.applySelectedSkin('skin-hexagon')">Hex Grid</div>
+                                <div class="sc-list-item" onclick="previewSkin('skin-shield', 'Cyber Shield', 'ywa.app', 'Ad-Free WebApps', event)" ondblclick="window.applySelectedSkin('skin-shield')">Cyber Shield</div>
+                                <div class="sc-list-item" onclick="previewSkin('skin-blob', 'Organic Blob', 'ywa.app', 'Ad-Free WebApps', event)" ondblclick="window.applySelectedSkin('skin-blob')">Organic Blob</div>
+                                <div class="sc-list-item" onclick="previewSkin('skin-rattleballs', 'Rattleballs', 'ywa.app', 'Ad-Free WebApps', event)" ondblclick="window.applySelectedSkin('skin-rattleballs')">Rattleballs</div>
+                            </div>
+                            <div class="sc-classic-preview">
+                                <div class="sc-preview-box">
+                                    <div id="sc-preview-element" class="sc-preview-graphic" style="background-image: url('https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/I3LsyZY.png'); background-size: contain; background-repeat: no-repeat;">
+                                        <span id="sc-preview-text" style="display: none;"></span>
+                                    </div>
+                                </div>
+                                <div class="sc-preview-info">
+                                    <div id="sc-preview-title">Title: Default (Royal)</div>
+                                    <div id="sc-preview-author">Author: Microsoft Corporation</div>
+                                    <div id="sc-preview-copyright">Ad-Free WebApps</div>
+                                </div>
+                            </div>
+                        </div>
+                        <script>
+                            let currentPreviewedSkin = 'default';
+                            
+                            // Dictionary of all skin preview images
+                            const skinImages = {
+                                'default': 'https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/I3LsyZY.png',
+                                'skin-mini': 'https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/d96WCn7.png',
+                                'skin-compact': 'https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/L8XJcbL.png',
+                                'skin-bauble': 'https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/QiZYdny.png',
+                                'skin-wreath': 'https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/Je0JPwJ.png',
+                                'skin-diamond': 'https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/b3PwsZx.png',
+                                'skin-pillar': 'https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/6bBL3j4.png',
+                                'skin-bmo': 'https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/BRsyeEl.png',
+                                'skin-capsule': 'https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/ets3zNo.png',
+                                'skin-hexagon': 'https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/oUo6Yo2.png',
+                                'skin-shield': 'https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/fHjkIl3.png',
+                                'skin-blob': 'https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/bbbvNTz.png',
+                                'skin-rattleballs': 'https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/2QaLSSp.png'
+                            };
+
+                            function previewSkin(id, title, author, copyright, e) {
+                                currentPreviewedSkin = id;
+                                
+                                // Update active list state
+                                document.querySelectorAll('.sc-list-item').forEach(el => el.classList.remove('active'));
+                                if(e && e.target) e.target.classList.add('active');
+                                
+                                // Update metadata text
+                                document.getElementById('sc-preview-title').innerText = 'Title: ' + title;
+                                document.getElementById('sc-preview-author').innerText = 'Author: ' + author;
+                                document.getElementById('sc-preview-copyright').innerText = copyright;
+                                
+                                // Update image dynamically
+                                const previewEl = document.getElementById('sc-preview-element');
+                                previewEl.style.backgroundImage = "url('" + skinImages[id] + "')";
+                            }
+                            
+                            function applyPreviewedSkin() {
+                                if(window.applySelectedSkin) {
+                                    window.applySelectedSkin(currentPreviewedSkin);
+                                }
+                            }
+                        </script>
+                    </div>
+
+                    <div id="mg-spinner" style="display: none; position: absolute; z-index: 50; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #ffffff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <iframe id="media-guide-frame" src="" sandbox="allow-scripts allow-same-origin allow-popups" style="transition: opacity 0.3s ease;"></iframe>
+                    
+                    <iframe id="yt-player" frameborder="0" style="display: none; border: none; outline: none;" allow="autoplay" allowfullscreen></iframe>
+                    
+                    <video id="wmp9-visualizer" muted playsinline style="display: none; width: 100%; height: 100%; object-fit: cover; border: none; outline: none; transition: opacity 0.5s ease; opacity: 0;"></video>
+                    
+                    <img src="" class="album-art" id="album-art" alt="Album Art" style="display: none; border: none; outline: none;">
+                    <video id="main-player" playsinline style="display: none; border: none; outline: none;" crossorigin="anonymous"></video>
+                </div>
+
+                <div class="wmp9-reveal-right-btn" id="reveal-right-btn" onclick="togglePlaylist()" style="display: none;" title="Show Info Center View">
+                    <i class="ph-bold ph-caret-left"></i>
+                </div>
+                
+                <div class="wmp9-status-bar">
+                    <i class="ph-fill ph-play wmp9-status-icon" id="wmp9-status-icon"></i>
+                    <img id="wmp9-status-icon-img" src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/Ez9NWLH.png" style="display: none; margin-right: 8px;">
+                    <span class="wmp9-status-text" id="wmp9-status-text">Ready</span>
+                    <span class="wmp9-status-time" id="current-time">00:00</span>
+                    
+                    <div class="wmp9-status-vis-controls" id="status-vis-controls" style="opacity: 0.3; pointer-events: none; display: flex; align-items: center; gap: 2px; margin-left: 10px;">
+                        <button class="wmp9-vis-btn" title="Previous Visualization" onclick="window.cycleVisualizer(-1)" style="background: transparent; border: none; color: #a4c1f4; font-size: 1rem; cursor: pointer !important;"><i class="ph-fill ph-caret-left"></i></button>
+                        <button class="wmp9-vis-btn" title="Next Visualization" onclick="window.cycleVisualizer(1)" style="background: transparent; border: none; color: #a4c1f4; font-size: 1rem; cursor: pointer !important;"><i class="ph-fill ph-caret-right"></i></button>
+                        <div style="width: 1px; height: 12px; background: #4667a4; margin: 0 4px;"></div>
+                        <button class="wmp9-vis-btn" title="Shuffle Ambiance" onclick="window.shuffleAmbiance()" style="background: transparent; border: none; color: #a4c1f4; font-size: 1rem; cursor: pointer !important;"><i class="ph-bold ph-arrows-clockwise"></i></button>
+                        <div style="width: 1px; height: 12px; background: #4667a4; margin: 0 4px;"></div>
+                        <button class="wmp9-vis-btn" title="Cycle Overlays" onclick="window.cycleArtFilter()" style="background: transparent; border: none; color: #a4c1f4; font-size: 1rem; cursor: pointer !important;"><i class="ph-fill ph-magic-wand"></i></button>
+                    </div>
+                </div>
+                
+            </div>
+
+            <div class="wmp9-right-pane" id="playlist-view">
+                
+                <div class="wmp9-playlist-titlebar">
+                    <div class="wmp9-playlist-title-text">
+                        <div class="wmp9-titlebar-icon" id="wmp9-titlebar-icon" onclick="togglePlaylist()" title="Close Info Center View"><i class="ph-bold ph-caret-right"></i></div>
+                        Now Playing
+                    </div>
+                </div>
+                
+                <div class="wmp9-album-block">
+                    <div class="wmp9-album-link" id="wmp9-album-link">Find Album Info</div>
+                    <div class="wmp9-album-art-box" id="wmp9-playlist-album-art"><i class="ph-fill ph-music-notes"></i></div>
+                    
+                    <div class="wmp9-album-track-name" id="wmp9-playlist-track-name"><span id="track-name">Ready</span></div>
+                </div>
+
+                <div class="wmp9-playlist-list-container">
+                    <div class="playlist-items" id="playlist-list">
+                        </div>
+                </div>
+                
+                <div class="wmp9-playlist-bottom-bar">
+                    <div class="wmp9-pbtn" onclick="document.getElementById('media-input').click()" title="Add Media"><i class="ph-bold ph-file-plus"></i></div>
+                    <div class="wmp9-pbtn" onclick="window.stopTrack()" title="Stop"><i class="ph-bold ph-x"></i></div>
+                    
+                    <div class="wmp9-total-time" id="wmp9-total-time"><span id="total-time">Total Time: 0:00</span></div>
+                </div>
+                
+            </div>
+
+            <div class="wmp9-transport-thick">
+                
+                <div class="wmp9-seek-row">
+                    
+                    <button class="wmp9-seek-edge-btn" onclick="window.seekVideo(-10)">
+                        <i class="ph-fill ph-caret-double-left"></i>
+                    </button>
+                    
+                    <div class="wmp9-seek-container" id="progress-container">
+                        <div class="wmp9-seek-fill" id="progress-fill"></div>
+                        
+                        <div class="wmp9-seek-thumb" id="progress-thumb">
+                            </div>
+                    </div>
+                    
+                    <button class="wmp9-seek-edge-btn" onclick="window.seekVideo(10)">
+                        <i class="ph-fill ph-caret-double-right"></i>
+                    </button>
+                    
+                </div>
+
+                <div class="wmp9-controls-row">
+                    
+                    <div class="wmp9-controls-thick-section">
+                        
+                        <div class="wmp9-capsule play-capsule">
+                            <button class="wmp9-giant-play-btn" id="play-pause-btn" onclick="togglePlay()" title="Play">
+                                <i class="ph-fill ph-play" id="play-icon-inner"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="wmp9-capsule stop-capsule">
+                            <button class="wmp9-round-btn" onclick="stopTrack()" title="Stop">
+                                <i class="ph-fill ph-stop"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="wmp9-capsule nav-capsule">
+                            <button class="wmp9-round-btn" onclick="prevTrack()" title="Previous">
+                                <i class="ph-fill ph-skip-back"></i>
+                            </button>
+                            <button class="wmp9-round-btn" onclick="nextTrack()" title="Next">
+                                <i class="ph-fill ph-skip-forward"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="wmp9-capsule vol-capsule">
+                            <button class="wmp9-round-btn wmp9-mute-btn" onclick="toggleMute()" title="Mute">
+                                <i class="ph-fill ph-speaker-high" id="wmp9-vol-icon"></i>
+                            </button>
+                            
+                            <div class="wmp9-triangle-vol-wrap">
+                                <div class="wmp9-vol-bg"></div>
+                                <div class="wmp9-vol-fill" id="vol-fill-element"></div>
+                                <input type="range" min="0" max="100" value="75" class="wmp9-vol-slider" id="vol-slider" oninput="window.handleSliderChange(this.value)">
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="wmp9-transport-thin-cell">
+                
+                <div class="wmp9-s-curve-mask">
+                    <div class="wmp9-audio-stats" style="padding-bottom: 10px; padding-right: 12px; height: 100%; display: flex; align-items: flex-end; justify-content: flex-end; gap: 8px;">
+                        
+                        <button id="color-cycle-btn" class="wmp9-small-recessed-btn" onclick="window.cycleVisColor()" style="width: 16px; height: 16px; margin-bottom: 2px; color: #00ee00;" title="Cycle Color">
+                            <i class="ph-bold ph-palette" style="font-size: 0.6rem; filter: drop-shadow(0px 0px 3px #000) drop-shadow(0px 0px 5px #000) drop-shadow(0px 0px 8px #000);"></i>
+                        </button>
+
+                        <button id="format-toggle-btn" class="wmp9-small-recessed-btn" onclick="window.toggleFormatDisplay()" style="width: 16px; height: 16px; margin-bottom: 2px; color: #00ee00;" title="Toggle Format Display">
+                            <i class="ph-bold ph-music-notes-simple" style="font-size: 0.6rem; filter: drop-shadow(0px 0px 3px #000) drop-shadow(0px 0px 5px #000) drop-shadow(0px 0px 8px #000);"></i>
+                        </button>
+
+                        <div id="cool-stereo-indicator" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 2px;">
+                            <span id="stereo-text" style="color: #00ee00; font-family: 'Small Fonts', Arial, sans-serif; font-size: 8px; letter-spacing: 1px; opacity: 0.8; filter: drop-shadow(0px 0px 3px #000) drop-shadow(0px 0px 5px #000) drop-shadow(0px 0px 8px #000);">STEREO</span>
+                            <div style="display: flex; gap: 2px; margin-top: 2px;">
+                                <div id="stereo-dot-1" style="width: 5px; height: 3px; background: #00ee00; opacity: 0.8; box-shadow: 0px 0px 3px #000, 0px 0px 5px #000, 0px 0px 8px #000;"></div>
+                                <div id="stereo-dot-2" style="width: 5px; height: 3px; background: #00ee00; opacity: 0.8; box-shadow: 0px 0px 3px #000, 0px 0px 5px #000, 0px 0px 8px #000;"></div>
+                            </div>
+                        </div>
+
+                        <div style="position: relative; width: 130px; height: 24px;">
+                            <div id="radio-visualizer-fallback" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; color: #00ee00; font-family: 'Arial Narrow', sans-serif; font-size: 18px; font-stretch: ultra-condensed; font-weight: normal; letter-spacing: 4px; text-align: right; line-height: 24px; opacity: 0.8; text-shadow: 0px 0px 6px #000, 0px 0px 8px #000, 0px 0px 10px #000;">RADIO</div>
+                            
+                            <div id="format-display-fallback" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; color: #00ee00; font-family: 'Arial Narrow', sans-serif; font-size: 18px; font-stretch: ultra-condensed; font-weight: normal; letter-spacing: 4px; text-align: right; line-height: 24px; opacity: 0.8; text-shadow: 0px 0px 6px #000, 0px 0px 8px #000, 0px 0px 10px #000;">MP3</div>
+                            
+                            <canvas id="mini-visualizer" width="130" height="24" style="display: block; opacity: 0.8; filter: drop-shadow(0px 0px 3px #000) drop-shadow(0px 0px 5px #000) drop-shadow(0px 0px 8px #000);"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="wmp9-transport-thin-inner">
+                    <div class="wmp9-controls-thin-section">
+                        
+                        <div style="display: flex; gap: 4px;">
+                            <button class="wmp9-small-recessed-btn" id="shuffle-btn" onclick="window.toggleShuffle()" title="Turn Shuffle On/Off">
+                                <i class="ph-bold ph-arrows-down-up"></i>
+                            </button>
+                            <button class="wmp9-small-recessed-btn" id="loop-btn" onclick="window.toggleLoop()" title="Toggle Repeat (Off, All, One)">
+                                <i class="ph-bold ph-repeat" id="loop-icon-inner"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="wmp9-right-buttons-wrap">
+                            <button class="wmp9-circle-on-line" onclick="openDialog('eq-dialog')" title="Enhancements">
+                                <i class="ph-fill ph-paint-brush-broad"></i>
+                            </button>
+                            <button class="wmp9-circle-on-line" onclick="toggleFullscreen()" title="Full Mode">
+                                <i class="ph-bold ph-corners-out"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="wmp9-resize-grip">
+                            <i></i><i></i><i></i><i></i><i></i><i></i>
+                        </div>
+
+                    </div>
+                </div>
+                
+            </div>
+
+        </div>
+
+        <div id="vlc-context-menu" class="context-menu">
+            <div class="context-item" onclick="togglePlay()">
+                <div class="context-item-text">Play / Pause</div>
+            </div>
+            <div class="context-item" onclick="stopTrack()">
+                <div class="context-item-text">Stop</div>
+            </div>
+            <div class="context-separator"></div>
+            <div class="context-item" onclick="toggleFullscreen()">
+                <div class="context-item-text">Full Mode</div>
+            </div>
+            
+            <div class="context-item context-nested-parent">
+                <div class="context-item-text">Video Size</div>
+                <i class="ph ph-caret-right"></i>
+                <div class="context-nested">
+                    <div class="context-item active-state" onclick="window.setAspectRatio('default')">Fit to Window</div>
+                    <div class="context-item" onclick="window.setAspectRatio('16:9')">16:9</div>
+                    <div class="context-item" onclick="window.setAspectRatio('16:10')">16:10</div>
+                    <div class="context-item" onclick="window.setAspectRatio('4:3')">4:3</div>
+                    <div class="context-item" onclick="window.setAspectRatio('1:1')">1:1</div>
+                    <div class="context-item" onclick="window.setAspectRatio('2.35:1')">2.35:1</div>
+                </div>
+            </div>
+            
+            <div class="context-separator"></div>
+            <div class="context-item" onclick="window.takeSnapshot()">
+                <div class="context-item-text">Capture Frame</div>
+            </div>
+            <div class="context-item" onclick="openDialog('eq-dialog')">
+                <div class="context-item-text">Enhancements</div>
+            </div>
+        </div>
+
+        <div id="fs-control-bar">
+            <div class="fs-progress-row">
+                <span id="fs-current-time">00:00</span>
+                <div class="wmp9-seek-container" id="fs-progress-container" style="flex: 1; margin: 0; box-shadow: inset 1px 2px 4px rgba(0,0,0,0.5);">
+                    <div class="wmp9-seek-fill" id="fs-progress-fill"></div>
+                </div>
+                <span id="fs-duration">00:00</span>
+            </div>
+            <div class="fs-button-bar">
+                <div class="left-controls">
+                    <button class="wmp9-giant-play-btn" onclick="togglePlay()" style="width: 36px; height: 36px; font-size: 1.4rem;">
+                        <i class="ph-fill ph-play" id="fs-play-icon"></i>
+                    </button>
+                    <button class="wmp9-round-btn" onclick="prevTrack()"><i class="ph-fill ph-skip-back"></i></button>
+                    <button class="wmp9-round-btn" onclick="stopTrack()"><i class="ph-fill ph-stop"></i></button>
+                    <button class="wmp9-round-btn" onclick="nextTrack()"><i class="ph-fill ph-skip-forward"></i></button>
+                    <div style="width: 10px;"></div>
+                    <button class="wmp9-round-btn" onclick="toggleFullscreen()"><i class="ph-bold ph-corners-in"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <input type="file" id="media-input" accept="audio/*,video/*,.m3u,.m3u8,.pls,.mkv" multiple class="file-input" style="display: none;">
+        <input type="file" id="art-input" accept="image/*" class="file-input" style="display: none;">
+        <input type="file" id="sub-input" accept=".srt" class="file-input" style="display: none;">
+        
+        <div id="seek-tooltip" class="seek-tooltip">00:00</div>
+    </div>
+    
+    <div class="dialog-window" id="stream-dialog" style="width: 400px;">
+        <div class="dialog-header">
+            Open URL
+            <button class="dialog-close" onclick="closeDialog('stream-dialog')"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div class="dialog-content">
+            <p style="font-size: 0.8rem; margin-bottom: 10px;">Enter the URL of an audio or video file on the Internet:</p>
+            <input type="text" id="stream-url-input" style="width: 100%; padding: 4px; font-size: 0.8rem; border: 1px solid #7f9db9;">
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+                <button class="wmp9-dialog-btn" onclick="window.submitNetworkStream()">OK</button>
+                <button class="wmp9-dialog-btn" onclick="closeDialog('stream-dialog')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="dialog-window" id="eq-dialog" style="width: 450px;">
+        <div class="dialog-header">
+            Enhancements
+            <button class="dialog-close" onclick="closeDialog('eq-dialog')"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div class="dialog-tabs">
+            <button class="tab-btn active" onclick="switchFilterTab('audio-fx-tab', this)">Graphic Equalizer</button>
+            <button class="tab-btn" onclick="switchFilterTab('video-fx-tab', this)">Video Settings</button>
+        </div>
+        <div class="dialog-content" style="min-height: 220px;">
+            <div id="audio-fx-tab" class="tab-pane active">
+                <p style="font-size: 0.8rem; border-bottom: 1px solid #7f9db9; padding-bottom: 5px; font-weight: bold; color: #1c3673;">Custom Equalizer</p>
+                <div class="eq-sliders-container" id="eq-sliders"></div>
+            </div>
+            <div id="video-fx-tab" class="tab-pane">
+                <p style="font-size: 0.8rem; border-bottom: 1px solid #7f9db9; padding-bottom: 5px; font-weight: bold; color: #1c3673;">Video Settings</p>
+                <div class="filter-row" style="margin-top: 10px;">
+                    <label>Brightness:</label>
+                    <input type="range" class="wmp9-dialog-range" id="vfx-brightness" min="0" max="200" value="100" oninput="window.updateVideoFilters()">
+                </div>
+                <div class="filter-row">
+                    <label>Contrast:</label>
+                    <input type="range" class="wmp9-dialog-range" id="vfx-contrast" min="0" max="200" value="100" oninput="window.updateVideoFilters()">
+                </div>
+                <div class="filter-row">
+                    <label>Saturation:</label>
+                    <input type="range" class="wmp9-dialog-range" id="vfx-saturation" min="0" max="300" value="100" oninput="window.updateVideoFilters()">
+                </div>
+                <div class="filter-row">
+                    <label>Hue:</label>
+                    <input type="range" class="wmp9-dialog-range" id="vfx-hue" min="0" max="360" value="0" oninput="window.updateVideoFilters()">
+                </div>
+                <div class="filter-row">
+                    <label>Sepia:</label>
+                    <input type="range" class="wmp9-dialog-range" id="vfx-sepia" min="0" max="100" value="0" oninput="window.updateVideoFilters()">
+                </div>
+                <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                    <button class="wmp9-dialog-btn" onclick="window.resetVideoFilters()">Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dialog-window" id="theme-dialog" style="width: 400px;">
+        <div class="dialog-header">
+            Options
+            <button class="dialog-close" onclick="closeDialog('theme-dialog')"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div class="dialog-content" style="font-size: 0.8rem; color: #000000;">
+            <p style="font-weight: bold; margin-bottom: 10px; color: #1c3673;">Privacy</p>
+            <div style="margin-bottom: 5px;">
+                <input type="checkbox" checked id="pref-save"> Save file and URL history in the Player
+            </div>
+            <div style="margin-bottom: 15px;">
+                <input type="checkbox" checked id="pref-net"> Retrieve media information from the Internet
+            </div>
+            <p style="font-weight: bold; margin-bottom: 10px; color: #1c3673;">Playback</p>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <label>Subtitles / Captions:</label>
+                <select style="padding: 2px 5px; font-size: 0.8rem; border: 1px solid #7f9db9;">
+                    <option>English</option>
+                    <option>French</option>
+                    <option>Spanish</option>
+                    <option>None</option>
+                </select>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #7f9db9; padding-top: 10px;">
+                <button class="wmp9-dialog-btn" onclick="closeDialog('theme-dialog')">OK</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="dialog-window" id="help-dialog" style="width: 700px; height: 500px; resize: both; overflow: hidden;">
+        <div class="dialog-header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <img src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/MlIBKIG.png" alt="Help Icon" style="width: 14px; height: 14px; pointer-events: none;">
+                Windows Media Player Help
+            </div>
+            <div style="display: flex; gap: 2px;">
+                <button class="dialog-sys-btn" disabled style="width: 21px; height: 21px; background: linear-gradient(135deg, #5c9eff, #1a66ff); border: 1px solid #ffffff; border-radius: 3px; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; opacity: 0.5; cursor: default;"><i class="ph-bold ph-minus"></i></button>
+                <button class="dialog-sys-btn" onclick="this.closest('.dialog-window').classList.toggle('maximized')" style="width: 21px; height: 21px; background: linear-gradient(135deg, #5c9eff, #1a66ff); border: 1px solid #ffffff; border-radius: 3px; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; cursor: pointer;"><i class="ph-bold ph-square"></i></button>
+                <button class="dialog-close" onclick="closeDialog('help-dialog')"><i class="ph-bold ph-x"></i></button>
+            </div>
+        </div>
+        <div class="dialog-content" style="padding: 0; background: #ffffff; flex: 1; display: flex;">
+            <iframe src="https://saw.floydcraft.co.uk/wmp9help/help.htm" style="width: 100%; height: 100%; border: none;"></iframe>
+        </div>
+    </div>
+    
+    <div class="dialog-window" id="about-dialog" style="width: 414px;">
+        <div class="dialog-header">
+            About Windows Media Player
+            <button class="dialog-close" onclick="closeDialog('about-dialog')"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div class="dialog-content" style="padding: 0; background: #ffffff; position: relative;">
+            <img src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/4lRCFOV.png" alt="About Windows Media Player" style="width: 100%; display: block;" draggable="false">
+            <button class="wmp9-dialog-btn" style="position: absolute; bottom: 4px; right: 4px; width: 80px; height: 20px; padding: 0; display: flex; align-items: center; justify-content: center;" onclick="closeDialog('about-dialog')">OK</button>
+        </div>
+    </div>
+
+    <div class="dialog-window" id="error-dialog" style="width: 350px;">
+        <div class="dialog-header">
+            Windows Media Player
+            <button class="dialog-close" onclick="closeDialog('error-dialog')"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div class="dialog-content" style="background: #ffffff; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 20px;">
+            <p style="font-size: 0.85rem; color: #000000; margin: 0;">You must be playing a media file to use this feature</p>
+            <button class="wmp9-dialog-btn" style="width: 80px;" onclick="closeDialog('error-dialog')">OK</button>
+        </div>
+    </div>
+
+    <div class="dialog-window" id="more-skins-dialog" style="width: 350px;">
+        <div class="dialog-header">
+            Windows Media Player
+            <button class="dialog-close" onclick="closeDialog('more-skins-dialog')"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div class="dialog-content" style="background: #ffffff; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 20px;">
+            <p style="font-size: 0.85rem; color: #000000; margin: 0;">There are currently no alternative skins.</p>
+            <button class="wmp9-dialog-btn" style="width: 80px;" onclick="closeDialog('more-skins-dialog')">OK</button>
+        </div>
+    </div>
+
+    <div class="dialog-window" id="rec-dialog">
+        <div class="dialog-header">
+            Recorded Files
+            <button class="dialog-close" onclick="closeDialog('rec-dialog')"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div class="dialog-content" id="recordings-list" style="max-height: 200px; overflow-y: auto;">
+            <p style="font-size: 0.8rem; color: #777777;" id="no-rec-msg">No recordings yet.</p>
+        </div>
+    </div>
+
+    <div class="dialog-window" id="login-modal" style="width: 338px; border-radius: 4px 4px 0 0;">
+        <div class="dialog-header">
+            Sign In
+            <button class="dialog-close" onclick="closeDialog('login-modal')"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div class="dialog-content" style="padding: 0; background: #ffffff;">
+            <img src="https://proxy.duckduckgo.com/iu/?u=https://i.imgur.com/1tGLvmb.png" alt="Sign In Modal" style="width: 100%; display: block;" draggable="false">
+        </div>
+    </div>
+
+    <div class="dialog-window" id="codepen-mkv-dialog" style="width: 350px;">
+        <div class="dialog-header">
+            Windows Media Player
+            <button class="dialog-close" onclick="closeDialog('codepen-mkv-dialog')"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div class="dialog-content" style="background: #ffffff; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 20px;">
+            <p style="font-size: 0.85rem; color: #000000; margin: 0;">MKV conversion is not supported on CodePen due to browser security restrictions. Please visit <strong>ywa.app</strong> or host this project locally to use this feature.</p>
+            <button class="wmp9-dialog-btn" style="width: 80px;" onclick="closeDialog('codepen-mkv-dialog')">OK</button>
+        </div>
+    </div>
+
+    <div class="dialog-window" id="ffmpeg-log-dialog" style="width: 450px;">
+        <div class="dialog-header">
+            Processing Media
+            <button class="dialog-close" onclick="closeDialog('ffmpeg-log-dialog')"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div class="dialog-content" style="padding: 15px; background: #ece9d8;">
+            <p style="font-size: 0.8rem; margin-top: 0; margin-bottom: 10px; color: #000;">Converting MKV format to MP4 for browser playback...</p>
+            <div id="ffmpeg-terminal" style="width: 100%; height: 200px; background: #000; color: #00ff00; font-family: Consolas, monospace; font-size: 0.75rem; padding: 8px; overflow-y: auto; border: 2px inset #fff; margin-bottom: 15px; box-sizing: border-box; word-wrap: break-word;"></div>
+            <div style="display: flex; justify-content: flex-end;">
+                <button class="wmp9-dialog-btn" onclick="closeDialog('ffmpeg-log-dialog')">Run in Background</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="ffmpeg/ffmpeg.js"></script>
+    <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
+
+    <script>
+        const { FFmpeg } = window.FFmpegWASM;
+        const { fetchFile, toBlobURL } = window.FFmpegUtil;
+
+        let ffmpeg = null;
+        let ffmpegLoaded = false;
+
+        function updateTerminal(msg, isSystem = false) {
+            console.log((isSystem ? '[System]: ' : '[FFmpeg Engine]: ') + msg);
+            const terminal = document.getElementById('ffmpeg-terminal');
+            if (terminal) {
+                const color = isSystem ? '#ffffff' : '#00ff00';
+                terminal.innerHTML += `<span style="color: ${color};">${msg}</span><br>`;
+                terminal.scrollTop = terminal.scrollHeight;
+            }
+        }
+
+        window.convertMKV = async (file) => {
+            const terminal = document.getElementById('ffmpeg-terminal');
+            if (terminal) terminal.innerHTML = '';
+            if (typeof openDialog === 'function') openDialog('ffmpeg-log-dialog');
+
+            updateTerminal("=== FFMPEG LOCAL BOOT SEQUENCE ===", true);
+            
+            if (!ffmpeg) {
+                ffmpeg = new FFmpeg();
+                ffmpeg.on('log', ({ message }) => {
+                    updateTerminal(message);
+                });
+            }
+
+            if (!ffmpegLoaded) {
+                updateTerminal("1. Booting FFmpeg Engine from local Nginx files...", true);
+                try {
+                    // THE FIX: We use toBlobURL on your local files to generate absolute paths 
+                    // and forcefully fix Nginx's missing .wasm MIME types!
+                    const coreURL = await toBlobURL('ffmpeg/ffmpeg-core.js', 'text/javascript');
+                    const wasmURL = await toBlobURL('ffmpeg/ffmpeg-core.wasm', 'application/wasm');
+                    const workerURL = await toBlobURL('ffmpeg/814.ffmpeg.js', 'text/javascript');
+
+                    await ffmpeg.load({ 
+                        coreURL: coreURL, 
+                        wasmURL: wasmURL,
+                        classWorkerURL: workerURL 
+                    });
+                    
+                    ffmpegLoaded = true;
+                    updateTerminal("2. FFmpeg Engine successfully booted and ready!", true);
+                } catch (err) {
+                    updateTerminal("!!! FFMPEG WASM BOOT FAILED !!!", true);
+                    console.error(err);
+                    throw new Error("FFmpeg failed to load. Check F12 network tab for 404 errors.");
+                }
+            }
+
+            updateTerminal(`3. Writing ${file.name} to virtual memory...`, true);
+            await ffmpeg.writeFile('input.mkv', await fetchFile(file));
+            
+            updateTerminal("4. Remuxing to MP4 (filtering out incompatible subtitle streams)...", true);
+            await ffmpeg.exec([
+                '-i', 'input.mkv', 
+                '-map', '0:v',      // Keep Video
+                '-map', '0:a?',     // Keep Audio (Ignore if none)
+                '-c', 'copy',       // Don't re-encode, just swap container
+                '-err_detect', 'ignore_err', 
+                'output.mp4'
+            ]);
+            
+            updateTerminal("5. Extracting MP4 from memory...", true);
+            const data = await ffmpeg.readFile('output.mp4');
+            const blob = new Blob([data.buffer], { type: 'video/mp4' });
+            
+            updateTerminal("6. Cleaning up RAM...", true);
+            await ffmpeg.deleteFile('input.mkv');
+            await ffmpeg.deleteFile('output.mp4');
+            
+            updateTerminal("Success! Handing over to WMP9 UI.", true);
+            
+            setTimeout(() => {
+                if (typeof closeDialog === 'function') closeDialog('ffmpeg-log-dialog');
+            }, 1500);
+
+            return new File([blob], file.name.replace(/\.mkv$/i, '.mp4'), { type: 'video/mp4' });
+        };
+    </script>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
